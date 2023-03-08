@@ -2,11 +2,13 @@ from setting import get_hosts, get_switches, get_links, get_ip, get_mac
 
 
 def main():
-    set_topology()
-    run_net()
+    __author__ = 'Sean Wei <me@sean.cat>, 0816146'
+    setup_topology()
+    while True:
+        menu()
 
 
-def set_topology():
+def setup_topology():
     global all_dict, host_dict, switch_dict
     host_dict, switch_dict = {}, {}
     ip_dict, mac_dict = get_ip(), get_mac()
@@ -21,67 +23,50 @@ def set_topology():
         all_dict[p1].add(all_dict[p2]), all_dict[p2].add(all_dict[p1])
 
 
-def run_net():
-    while True:
-        argv = input(">> ").split()
-        match argv:
-            case [src, 'ping', dst]:
-                ping(src, dst)
-            case ['show_table', target]:
-                show_table(target)
-            case ['clear', target]:
-                if target in all_dict:
-                    all_dict[target].clear()
-                else:
-                    print(f'Target {target} not exists.')
-            case _:
-                print('a wrong command')
+def menu():
+    match input(">> ").split():
+        case [src, 'ping', dst] if src in host_dict and dst in host_dict:
+            src, dst = host_dict[src], host_dict[dst]
+            src.ping(dst.ip)
 
+        case ['show_table', 'all_hosts']:
+            [v.show_table() for k, v in host_dict.items()]
+        case ['show_table', 'all_switches']:
+            [v.show_table() for k, v in switch_dict.items()]
+        case ['show_table', target] if target in all_dict:
+            all_dict[target].show_table()
 
-def ping(src, dst):  # initiate a ping between two hosts
-    global host_dict, switch_dict
-    print(f'{src=} -> {dst=}')
-    if src not in host_dict or dst not in host_dict:
-        return  # invalid command
+        case ['clear', target] if target in all_dict:
+            all_dict[target].clear()
 
-    src, dst = host_dict[src], host_dict[dst]
-    src.ping(dst.ip)
-
-
-def show_table(target):  # display the ARP or MAC table of a node
-    if target == 'all_hosts':
-        [v.show_table() for k, v in host_dict.items()]
-    elif target == 'all_switches':
-        [v.show_table() for k, v in switch_dict.items()]
-    elif target in all_dict:
-        all_dict[target].show_table()
-    else:
-        print(f'{target = } not exists.')
+        case _:
+            print('a wrong command')
 
 
 class host:
     def __init__(self, name, ip, mac):
         self.name = name
-        self.ip = ip
-        self.mac = mac
+        self.ip, self.mac = ip, mac
         self.port_to = None
         self.arp_table = {}  # IP -> MAC
-
-    def add(self, node):
-        self.port_to = node
-
-    def ping(self, dst_ip):  # handle a ping request
-        self.send(dst_ip, 'ping')
-
-    def show_table(self):
-        print(f'host {self.name=}\n'
-              f'{self.arp_table=}\n')
 
     def clear(self):
         self.arp_table = {}
 
+    def add(self, node):
+        self.port_to = node
+
+    def show_table(self):
+        print(f'{self.name:->20}:',
+              *[f'{k} : {v}' for k, v in self.arp_table.items()], sep='\n')
+
+    def ping(self, dst_ip):
+        if dst_ip not in self.arp_table:
+            self.send(dst_ip, 'ARP request')
+        self.send(dst_ip, 'ICMP ping')
+
     def send(self, dst_ip, content):
-        dst_mac = self.arp_table.get(dst_ip, 'ff')
+        dst_mac = self.arp_table.get(dst_ip, 'ffff')
         self.port_to.handle_packet(self, self.mac, dst_mac,
                                    self.ip, dst_ip, content)
 
@@ -91,8 +76,10 @@ class host:
             return
         self.arp_table[src_ip] = src_mac  # Update ARP
 
+        if 'request' in content:
+            self.send(src_ip, 'ARP response')
         if 'ping' in content:
-            self.send(src_ip, 'pong')
+            self.send(src_ip, 'ICMP pong')
 
 
 class switch:
@@ -101,14 +88,15 @@ class switch:
         self.port_to = []
         self.mac_table = {}  # MAC -> Port
 
-    def add(self, node):  # link with other hosts or switches
+    def clear(self):
+        self.mac_table = {}
+
+    def add(self, node):
         self.port_to.append(node)
 
     def show_table(self):
-        print(f'sw {self.name=}\n{self.mac_table=}\n')
-
-    def clear(self):
-        self.mac_table = {}
+        print(f'{self.name:->20}:',
+              *[f'{k} : {v}' for k, v in self.mac_table.items()], sep='\n')
 
     def send(self, idx, src_mac, dst_mac, src_ip, dst_ip, content):
         node = self.port_to[idx]
@@ -117,13 +105,10 @@ class switch:
 
     def handle_packet(self, ingress, src_mac, dst_mac,
                       src_ip, dst_ip, content):
-        content = content + '.'
-
+        self.mac_table[src_mac] = self.port_to.index(ingress)  # Update
         if dst_mac in self.mac_table:
             return self.send(self.mac_table[dst_mac], src_mac, dst_mac,
                              src_ip, dst_ip, content)
-        if dst_mac != 'ff':
-            self.mac_table[src_mac] = self.port_to.index(ingress)  # Update
         for p in range(len(self.port_to)):
             if self.port_to[p] != ingress:
                 self.send(p, src_mac, dst_mac, src_ip, dst_ip, content)
