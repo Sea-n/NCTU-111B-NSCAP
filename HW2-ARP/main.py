@@ -35,7 +35,7 @@ def run_net():
                 else:
                     print(f'Target {target} not exists.')
             case _:
-                print(f'failed {argv=}')
+                print('a wrong command')
 
 
 def ping(src, dst):  # initiate a ping between two hosts
@@ -51,10 +51,12 @@ def ping(src, dst):  # initiate a ping between two hosts
 def show_table(target):  # display the ARP or MAC table of a node
     if target == 'all_hosts':
         [v.show_table() for k, v in host_dict.items()]
-    elif target == 'all_switchs':
+    elif target == 'all_switches':
         [v.show_table() for k, v in switch_dict.items()]
-    else:
+    elif target in all_dict:
         all_dict[target].show_table()
+    else:
+        print(f'{target = } not exists.')
 
 
 class host:
@@ -63,56 +65,68 @@ class host:
         self.ip = ip
         self.mac = mac
         self.port_to = None
-        self.arp_table = {}
+        self.arp_table = {}  # IP -> MAC
 
     def add(self, node):
         self.port_to = node
 
     def ping(self, dst_ip):  # handle a ping request
-        pass
+        self.send(dst_ip, 'ping')
 
     def show_table(self):
-        print(f'sw {self.name=}, {self.ip=}, {self.mac=}\n'
-              f'{self.port_to=}\n{self.arp_table=}\n')
+        print(f'host {self.name=}\n'
+              f'{self.arp_table=}\n')
 
     def clear(self):
-        pass  # clear ARP table entries for this host
+        self.arp_table = {}
 
-    def send(self, xxx):
-        node = self.port_to  # get node connected to this host
-        node.handle_packet(xxx)  # send packet to the connected node
+    def send(self, dst_ip, content):
+        dst_mac = self.arp_table.get(dst_ip, 'ff')
+        self.port_to.handle_packet(self, self.mac, dst_mac,
+                                   self.ip, dst_ip, content)
 
-    def handle_packet(self, xxx):  # handle incoming packets
-        pass
+    def handle_packet(self, ingress, src_mac, dst_mac,
+                      src_ip, dst_ip, content):
+        if dst_ip != self.ip:
+            return
+        self.arp_table[src_ip] = src_mac  # Update ARP
 
-    def update_arp(self, xxx):
-        pass  # update ARP table with a new entry
+        if 'ping' in content:
+            self.send(src_ip, 'pong')
 
 
 class switch:
     def __init__(self, name):
         self.name = name
         self.port_to = []
-        self.mac_table = {}
+        self.mac_table = {}  # MAC -> Port
 
     def add(self, node):  # link with other hosts or switches
         self.port_to.append(node)
 
     def show_table(self):
-        print(f'sw {self.name=}\n{self.port_to=}\n{self.mac_table=}\n')
+        print(f'sw {self.name=}\n{self.mac_table=}\n')
 
     def clear(self):
-        pass  # clear MAC table entries for this switch
+        self.mac_table = {}
 
-    def send(self, idx, xxx):  # send to the specified port
+    def send(self, idx, src_mac, dst_mac, src_ip, dst_ip, content):
         node = self.port_to[idx]
-        node.handle_packet(xxx)
+        node.handle_packet(self, src_mac, dst_mac,
+                           src_ip, dst_ip, content)
 
-    def handle_packet(self, xxx):  # handle incoming packets
-        pass
+    def handle_packet(self, ingress, src_mac, dst_mac,
+                      src_ip, dst_ip, content):
+        content = content + '.'
 
-    def update_mac(self, xxx):
-        pass  # update MAC table with a new entry
+        if dst_mac in self.mac_table:
+            return self.send(self.mac_table[dst_mac], src_mac, dst_mac,
+                             src_ip, dst_ip, content)
+        if dst_mac != 'ff':
+            self.mac_table[src_mac] = self.port_to.index(ingress)  # Update
+        for p in range(len(self.port_to)):
+            if self.port_to[p] != ingress:
+                self.send(p, src_mac, dst_mac, src_ip, dst_ip, content)
 
 
 if __name__ == '__main__':
