@@ -8,6 +8,7 @@ class Setting():
         self.host_num = host_num  # host 數量
         self.total_time = total_time  # 模擬時間總長，時間以 1 為最小時間單位
         self.packet_num = packet_num  # 每個 host 生成的封包數量
+        self.packet_size = packet_size
         # packet time 是完成一個封包所需的時間，包含了送 packet 的 link delay 和 ack 的 link delay
         # 假設等待 ack 的時間等同於 link delay
         self.packet_time = packet_size + 2*link_delay
