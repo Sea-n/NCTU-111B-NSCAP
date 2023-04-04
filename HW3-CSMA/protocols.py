@@ -1,24 +1,6 @@
 from random import randint, random
 
 
-def common_end(setting, show_history, pkts, graph):
-    if show_history:
-        for k in range(setting.host_num):
-            print('   ', ''.join(['V' if i in pkts[k] else ' '
-                                  for i in range(setting.total_time)]))
-            print(f'h{k}:', ''.join(graph[k]))
-
-    succ_cnt = sum([graph[k].count('>') for k in range(setting.host_num)
-                    ]) * (setting.packet_size + 2)
-    idle_cnt = sum([1 if sum([1 if graph[k][t] != '.' else 0
-                              for k in range(setting.host_num)]) == 0 else 0
-                    for t in range(setting.total_time)])
-
-    return ((succ_cnt / setting.total_time),
-            (idle_cnt / setting.total_time),
-            (1 - (succ_cnt + idle_cnt) / setting.total_time))
-
-
 def aloha(setting, show_history=False):
     pkts = setting.gen_packets()
     graph = [[] for _ in range(setting.host_num)]
@@ -60,7 +42,7 @@ def aloha(setting, show_history=False):
             else:
                 graph[k].append('-')
 
-    return common_end(setting, show_history, pkts, graph)
+    return proto_stat(setting, show_history, pkts, graph)
 
 
 def slotted_aloha(setting, show_history=False):
@@ -78,7 +60,7 @@ def slotted_aloha(setting, show_history=False):
                 else:
                     queue[k] += 1
             if sending[k] == 1e9 and queue[k]:
-                if t % slot == 0 and random() < 0.3:
+                if t % slot == 0 and random() < setting.p_resend:
                     sending[k] = t
                     queue[k] -= 1
 
@@ -110,7 +92,7 @@ def slotted_aloha(setting, show_history=False):
             else:
                 graph[k].append('-')
 
-    return common_end(setting, show_history, pkts, graph)
+    return proto_stat(setting, show_history, pkts, graph)
 
 
 def csma(setting, show_history=False):
@@ -161,7 +143,7 @@ def csma(setting, show_history=False):
             else:
                 graph[k].append('-')
 
-    return common_end(setting, show_history, pkts, graph)
+    return proto_stat(setting, show_history, pkts, graph)
 
 
 def csma_cd(setting, show_history=False):
@@ -190,8 +172,10 @@ def csma_cd(setting, show_history=False):
         for k in range(setting.host_num):
             if sending[k] <= t:
                 for i in range(setting.host_num):  # Check collision
-                    if i != k and graph[i][:-setting.link_delay][
-                            -(t - sending[k]):].count('.') != t - sending[k]:
+                    g = graph[i][:-setting.link_delay] \
+                        if setting.link_delay else graph[i]
+                    if i != k and g[-(t - sending[k]):] \
+                            .count('.') != t - sending[k]:
                         coll.append(k)
 
         # Draw graph
@@ -212,4 +196,22 @@ def csma_cd(setting, show_history=False):
             else:
                 graph[k].append('-')
 
-    return common_end(setting, show_history, pkts, graph)
+    return proto_stat(setting, show_history, pkts, graph)
+
+
+def proto_stat(setting, show_history, pkts, graph):
+    if show_history:
+        for k in range(setting.host_num):
+            print('   ', ''.join(['V' if i in pkts[k] else ' '
+                                  for i in range(setting.total_time)]))
+            print(f'h{k}:', ''.join(graph[k]))
+
+    succ_cnt = sum([graph[k].count('>') for k in range(setting.host_num)
+                    ]) * (setting.packet_size + 2)
+    idle_cnt = sum([1 if sum([1 if graph[k][t] != '.' else 0
+                              for k in range(setting.host_num)]) == 0 else 0
+                    for t in range(setting.total_time)])
+
+    return ((succ_cnt / setting.total_time),
+            (idle_cnt / setting.total_time),
+            (1 - (succ_cnt + idle_cnt) / setting.total_time))
