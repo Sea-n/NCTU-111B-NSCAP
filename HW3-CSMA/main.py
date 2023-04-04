@@ -1,5 +1,5 @@
 from setting import Setting
-from protocols import aloha
+from protocols import aloha, slotted_aloha
 
 
 def main():
@@ -7,8 +7,13 @@ def main():
                       max_colision_wait_time=20, p_resend=0.3,
                       packet_size=3, link_delay=1, seed=4)
 
-    print('aloha')
-    aloha(setting, show_history=True)
+    for func in [aloha, slotted_aloha]:
+        print(func.__name__)
+        succ_rate, idle_rate, coll_rate = func(setting, show_history=True)
+        print('success_rate: %.2f' % succ_rate)
+        print('idle_rate: %.2f' % idle_rate)
+        print('collision_rate: %.2f' % coll_rate)
+        print()
 
 
 if __name__ == '__main__':
