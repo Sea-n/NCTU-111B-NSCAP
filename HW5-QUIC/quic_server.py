@@ -21,7 +21,7 @@ def main():
     server.listen(socket_addr=("127.0.0.1", 30001))
     server.accept()
 
-    server.send(1, b"0123456789ABCDEF" * 42)
+    server.send(1, b"12345678" * 42)
     print('sent 1')
 
     stream_id, data = server.recv()
@@ -30,7 +30,7 @@ def main():
     stream_id, data = server.recv()
     print('recv B', stream_id, data)
 
-    server.send(2, b"0123456789ABCDEF" * 42)
+    server.send(2, b"ABCDEF" * 42)
     print('sent 2')
 
     server.close()
