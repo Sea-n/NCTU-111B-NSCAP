@@ -3,8 +3,9 @@ from quic_base import QUIC
 
 class QUICClient(QUIC):
     def connect(self, socket_addr: tuple[str, int]):
+        self.wnd = 5
         self.addr = socket_addr
-        self.send(0, b'QUIC Hello')
+        self.send(0, int.to_bytes(self.wnd, 2, 'big'))
         print('connect()')
 
 
@@ -15,10 +16,10 @@ def main():
     stream_id, data = client.recv()
     print('recv A', stream_id, data)
 
-    client.send(3, b"Hey There!")
+    client.send(3, b"Hello world. " * 5)
     print('sent 3')
 
-    client.send(4, b"Nice to meet you.")
+    client.send(4, b"Nice to meet you! " * 10)
     print('sent 4')
 
     stream_id, data = client.recv()

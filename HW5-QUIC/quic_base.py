@@ -6,8 +6,10 @@ from struct import pack, unpack
 
 class QUIC:
     def __init__(self):
+        self.speed = 5
         self.MTU = 22 - 12
-        self.itrv = 0.1
+        self.recv_wnd = 3
+        self.send_wnd = 0
         self.running = True
         self.stream_max = 10
         self.recv_completed = list()
@@ -38,8 +40,10 @@ class QUIC:
         while self.running:
             for k in range(self.stream_max):
                 for frag_id, data in self.send_frag[k].items():
+                    if (frag_id >= list(self.send_frag[k].keys())[0] + self.wnd):
+                        continue  # Exceed sliding window
                     self.sock.sendto(data, self.addr)
-                    sleep(self.itrv)
+                    sleep(1.0 / self.speed)
                 for frag_id in self.send_ack[k]:
                     del self.send_frag[k][frag_id]
                 self.send_ack[k].clear()

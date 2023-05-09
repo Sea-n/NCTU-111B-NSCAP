@@ -10,9 +10,10 @@ class QUICServer(QUIC):
 
     def accept(self):
         stream_id, data = self.recv()
-        if stream_id != 0 or data != b'QUIC Hello':
-            print(f'Warning: {stream_id=} and {data=} is not Hello')
+        if stream_id != 0:
+            print(f'Warning: {stream_id=} is not Hello')
             return self.accept()  # Try again
+        self.wnd = int.from_bytes(data, 'big')
         print('accept()')
 
 
@@ -21,7 +22,7 @@ def main():
     server.listen(socket_addr=("127.0.0.1", 30001))
     server.accept()
 
-    server.send(1, b"12345678" * 42)
+    server.send(1, b"12345678" * 4)
     print('sent 1')
 
     stream_id, data = server.recv()
@@ -30,7 +31,7 @@ def main():
     stream_id, data = server.recv()
     print('recv B', stream_id, data)
 
-    server.send(2, b"ABCDEF" * 42)
+    server.send(2, b"ABCDEF" * 12)
     print('sent 2')
 
     server.close()
