@@ -1,16 +1,26 @@
-class QUICClient:
-    def connect(socket_addr: tuple[str, int]):
-        """connect to the specific server"""
-        pass
+from quic_base import QUIC
 
-    def send(stream_id: int, data: bytes):
-        """call this method to send data, with non-reputation stream_id"""
-        pass
 
-    def recv() -> tuple[int, bytes]: # stream_id, data
-        """receive a stream, with stream_id"""
-        pass
+class QUICClient(QUIC):
+    def connect(self, socket_addr: tuple[str, int]):
+        self.addr = socket_addr
+        self.send(0, b'QUIC Hello')
+        print('connect()')
 
-    def close():
-        """close the connection and the socket"""
-        pass
+
+def main():
+    client = QUICClient()
+    client.connect(("127.0.0.1", 30001))
+    recv_id, recv_data = client.recv()
+    print(recv_data.decode("utf-8")) # SOME DATA, MAY EXCEED 1500 bytes
+    client.send(3, b"Hey Server!")
+    print('sent 3')
+    client.send(4, b"Hi Server!")
+    print('sent 4')
+    recv_id, recv_data = client.recv()
+    print(recv_data.decode("utf-8")) # LOREM DATA, MAY EXCEED 1500 bytes
+    client.close()
+
+
+if __name__ == "__main__":
+    main()
