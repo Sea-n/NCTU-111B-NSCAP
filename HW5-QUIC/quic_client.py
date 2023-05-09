@@ -16,10 +16,10 @@ def main():
     stream_id, data = client.recv()
     print('recv A', stream_id, data)
 
-    client.send(3, b"Hello world. " * 5)
+    client.send(3, b"Hello world. " * 10)
     print('sent 3')
 
-    client.send(4, b"Nice to meet you! " * 10)
+    client.send(4, b"Nice to meet you! " * 3)
     print('sent 4')
 
     stream_id, data = client.recv()
