@@ -6,21 +6,22 @@ from struct import pack, unpack
 
 class QUIC:
     def __init__(self):
-        self.frag = {k: dict() for k in range(10)}
-        self.ack = {k: set() for k in range(10)}
-        self.completed = list()
+        self.MTU = 13 - 12
         self.running = True
-        self.MTU = 13 - 3
+        self.stream_max = 10
+        self.completed = list()
+        self.ack = {k: set() for k in range(self.stream_max)}
+        self.frag = {k: dict() for k in range(self.stream_max)}
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(0.1)
         self.thrd = Thread(target = self.loop)
+        self.sock.settimeout(0.1)
         self.thrd.start()
 
     def send(self, stream_id: int, data: bytes):
-        frag = (len(data)-1) // self.MTU + 1
-        for k in range(frag):
-            self.sock.sendto(pack('bbb', stream_id, k, frag)
+        frag_cnt = (len(data)-1) // self.MTU + 1
+        for k in range(frag_cnt):
+            self.sock.sendto(pack('III', stream_id, k, frag_cnt)
                              + data[self.MTU*k:self.MTU*(k+1)], self.addr)
 
     def recv(self) -> tuple[int, bytes]: # stream_id, data
@@ -31,7 +32,7 @@ class QUIC:
     def loop(self):
         while self.running:
             try:
-                data, addr = self.sock.recvfrom(self.MTU + 3)
+                data, addr = self.sock.recvfrom(self.MTU + 12)
             except TimeoutError:
                 continue
 
@@ -40,8 +41,8 @@ class QUIC:
             elif self.addr != addr:
                 print(f'Warning: received from {addr} rather than {self.addr}')
 
-            stream_id, frag_id, frag_cnt = unpack('bbb', data[:3])
-            self.frag[stream_id][frag_id] = data[3:]
+            stream_id, frag_id, frag_cnt = unpack('III', data[:12])
+            self.frag[stream_id][frag_id] = data[12:]
             self.ack[stream_id].add(frag_id)
             if len(self.ack[stream_id]) == frag_cnt:
                 buf = b''

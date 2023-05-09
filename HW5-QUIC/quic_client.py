@@ -11,14 +11,19 @@ class QUICClient(QUIC):
 def main():
     client = QUICClient()
     client.connect(("127.0.0.1", 30001))
-    recv_id, recv_data = client.recv()
-    print(recv_data.decode("utf-8")) # SOME DATA, MAY EXCEED 1500 bytes
-    client.send(3, b"Hey Server!")
+
+    stream_id, data = client.recv()
+    print('recv A', stream_id, data)
+
+    client.send(3, b"Hey There!")
     print('sent 3')
-    client.send(4, b"Hi Server!")
+
+    client.send(4, b"Nice to meet you.")
     print('sent 4')
-    recv_id, recv_data = client.recv()
-    print(recv_data.decode("utf-8")) # LOREM DATA, MAY EXCEED 1500 bytes
+
+    stream_id, data = client.recv()
+    print('recv B', stream_id, data)
+
     client.close()
 
 

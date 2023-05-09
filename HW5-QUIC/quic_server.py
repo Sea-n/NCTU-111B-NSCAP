@@ -20,14 +20,19 @@ def main():
     server = QUICServer()
     server.listen(socket_addr=("127.0.0.1", 30001))
     server.accept()
-    server.send(1, b"ABCDEF123456abcdef123456" * 4)
-    server.send(2, b"LOREM DATA, MAY EXCEED 1500 bytes")
-    print('sent 1 & 2')
-    recv_id, recv_data = server.recv()
-    print('recv 1', recv_id, recv_data)
-    recv_id, recv_data = server.recv()
-    print('recv 2', recv_id, recv_data)
-    print(recv_data.decode("utf-8")) # Hello Server!
+
+    server.send(1, b"0123456789ABCDEF" * 42)
+    print('sent 1')
+
+    stream_id, data = server.recv()
+    print('recv A', stream_id, data)
+
+    stream_id, data = server.recv()
+    print('recv B', stream_id, data)
+
+    server.send(2, b"0123456789ABCDEF" * 42)
+    print('sent 2')
+
     server.close()
 
 
