@@ -1,0 +1,8 @@
+FROM alpine
+
+RUN apk update
+RUN apk add bash iproute2-tc nload socat
+
+COPY recv.sh /
+
+CMD ["sh", "/recv.sh", "docker"]

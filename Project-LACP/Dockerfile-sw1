@@ -1,0 +1,8 @@
+FROM alpine
+
+RUN apk update
+RUN apk add bash iproute2-tc nload socat
+
+COPY sw1.sh /
+
+CMD ["sh", "/sw1.sh", "docker"]

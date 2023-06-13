@@ -1,0 +1,59 @@
+version: '3'
+name: lacp
+
+networks:
+  link0: {ipam: {config: [subnet: 10.113.20.0/24]}}
+  link1: {ipam: {config: [subnet: 10.113.21.0/24]}}
+  link2: {ipam: {config: [subnet: 10.113.22.0/24]}}
+  link3: {ipam: {config: [subnet: 10.113.23.0/24]}}
+  link4: {ipam: {config: [subnet: 10.113.24.0/24]}}
+  link5: {ipam: {config: [subnet: 10.113.25.0/24]}}
+  link6: {ipam: {config: [subnet: 10.113.26.0/24]}}
+  link7: {ipam: {config: [subnet: 10.113.27.0/24]}}
+  link8: {ipam: {config: [subnet: 10.113.28.0/24]}}
+  link9: {ipam: {config: [subnet: 10.113.29.0/24]}}
+
+services:
+  send:
+    build:
+      dockerfile: Dockerfile-send
+    networks:
+      link0: {ipv4_address: 10.113.20.3}
+    volumes:
+      - ./send.sh:/send.sh
+
+  sw1:
+    build:
+      dockerfile: Dockerfile-sw1
+    networks:
+      link0: {ipv4_address: 10.113.20.4}
+      link1: {ipv4_address: 10.113.21.4}
+      link2: {ipv4_address: 10.113.22.4}
+      link3: {ipv4_address: 10.113.23.4}
+      link4: {ipv4_address: 10.113.24.4}
+      link5: {ipv4_address: 10.113.25.4}
+      link6: {ipv4_address: 10.113.26.4}
+      link7: {ipv4_address: 10.113.27.4}
+      link8: {ipv4_address: 10.113.28.4}
+
+  sw2:
+    build:
+      dockerfile: Dockerfile-sw2
+    cap_add:
+      - NET_ADMIN
+    networks:
+      link1: {ipv4_address: 10.113.21.5}
+      link2: {ipv4_address: 10.113.22.5}
+      link3: {ipv4_address: 10.113.23.5}
+      link4: {ipv4_address: 10.113.24.5}
+      link5: {ipv4_address: 10.113.25.5}
+      link6: {ipv4_address: 10.113.26.5}
+      link7: {ipv4_address: 10.113.27.5}
+      link8: {ipv4_address: 10.113.28.5}
+      link9: {ipv4_address: 10.113.29.5}
+
+  recv:
+    build:
+      dockerfile: Dockerfile-recv
+    networks:
+      link9: {ipv4_address: 10.113.29.6}
