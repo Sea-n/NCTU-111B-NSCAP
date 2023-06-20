@@ -9,7 +9,7 @@ main() {
 		accept
 	fi
 
-	echo "Receiver exit."
+	# echo "Receiver exit."
 }
 
 listen() {

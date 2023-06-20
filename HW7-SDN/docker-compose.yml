@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  vm1:
+    build: .
+    volumes:
+      - ./:/srv
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_NICE
+    security_opt:
+      - apparmor:unconfined
+    networks:
+      default:
+        ipv4_address: 172.31.0.11
+
+  vm2:
+    build: .
+    volumes:
+      - ./:/srv
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_NICE
+    security_opt:
+      - apparmor:unconfined
+    networks:
+      default:
+        ipv4_address: 172.31.0.22
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16
